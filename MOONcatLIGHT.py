@@ -7,7 +7,11 @@ Created on Fri Oct 22 12:35:09 2021
 
 import numpy as np
 from astropy.io import fits
+import matplotlib
 import matplotlib.pyplot as plt
+from scipy.spatial import cKDTree
+from scipy.spatial import KDTree
+from collections import Counter
 
 
 
@@ -239,8 +243,8 @@ class McL:
     def clean_for_duplicate(self):
         """
         This function identifies duplicates objects in the catalogue
-        with a double check: by using their ID and after also their
-        coordinates.
+        with a double check: by using their ID (TODO and after also their
+        coordinates).
         """
         newid_obj, i = np.unique(self.id_obj, return_index=True)
         if len(newid_obj) < len(self.id_obj):
@@ -253,7 +257,7 @@ class McL:
             self.id_obj, self.ra, self.dec, self.l, self.b, self.Jmag, self.Hmag, self.Kmag, self.rmag, self.E_jk = self.id_obj[i], self.ra[i], self.dec[i], self.l[i], self.b[i], self.Jmag[i], self.Hmag[i], self.Kmag[i], self.rmag[i], self.E_jk[i]
         else:
             print()
-            print("There are not duplicate objects in this catalogue (by their ID)")
+            print("There are not duplicate objects in this catalogue (by their ID and/or coordinates)")
             print()
 
 
@@ -350,6 +354,9 @@ class McL:
 
         if print_info!='no':
             [print(keyw[n], val[n]) for n in range(len(val))]
+
+        #McL.get_info(self)
+
 
 
     def find_guidestar(self):
@@ -573,6 +580,8 @@ class McL:
 
         self.raFIELD        =       raFIELD
         self.decFIELD       =       decFIELD
+        self.raCENTER        =       raCENTER
+        self.decCENTER       =       decCENTER
 
 
         dict_info  =    {"FoV Center"   :  (raFIELD, decFIELD),"Field center" :  (raCENTER, decCENTER)}
@@ -674,7 +683,6 @@ class McL:
         cat_name        : name of the catalogue which you will use for MOONLIGHT
         param_name      : name of the file without extention
         """
-        McL.get_info(self)
         if ((self.guideStarRA==-999) & (self.guideStarDEC==-999)):
             self.guideStarRA, self.guideStarDEC = McL.find_guidestar(self)
 
@@ -1142,3 +1150,126 @@ class McL:
             j = np.where(dist!=0.)
 
             return dist[j], ind[j]
+
+
+
+
+
+    def single_malt_star(self, ID_all, ra_all, dec_all, mag_all,  ID, ra, dec, mag, rr, keyw=['a0','a1','a2','a3']):
+        pts_all = np.array([ra_all, dec_all]).T
+        pts = np.array([ra, dec]).T
+        max_distance = rr
+
+        Tree_cat = KDTree(pts_all)
+        Tree_target = KDTree(pts)
+        idx = Tree_target.query_ball_tree(Tree_cat, r=max_distance)
+
+
+        bl = np.zeros((len(idx)))
+        for n in range(len(idx)):
+            n_blend = len(ID_all[idx[n]])
+            if n_blend>1:
+                for m in range(n_blend):
+                    if (ID_all[idx[n]][m]!=ID[n]) & (mag_all[idx[n]][m]<=mag[n]):
+                        bl[n] = 3
+                    elif (ID_all[idx[n]][m]!=ID[n]) & ((mag_all[idx[n]][m]>mag[n]) & (mag_all[idx[n]][m]<(mag[n]+1))):
+                        bl[n] = 2
+                    elif (ID_all[idx[n]][m]!=ID[n]) & (mag_all[idx[n]][m]>=(mag[n]+1)):
+                        bl[n] = 1
+            elif n_blend==1:
+                bl[n] = 0
+
+        blend_type = []
+        for n in range(len(bl)):
+            if bl[n]==0:
+                blend_type.append('a0')
+            elif bl[n]==1:
+                blend_type.append('a1')
+            elif bl[n]==2:
+                blend_type.append('a2')
+            elif bl[n]==3:
+                blend_type.append('a3')
+
+        print(Counter(blend_type))
+
+
+        return np.asarray(blend_type)
+
+
+
+
+
+    def get_sky(self, ra_all, dec_all, rr = 1.4, n_fiber_sky=30, show=True):
+        sky = []
+        k=-1
+
+        while len(sky)<n_fiber_sky:
+            k += 1
+
+            rho = np.sqrt(np.random.uniform(0, self.RADIUS_CUT/4))
+            phi = np.random.uniform(0, 2*np.pi)
+
+            ra_random = rho * np.cos(phi)+self.raCENTER
+            dec_random = rho * np.sin(phi)+self.decCENTER
+
+
+
+            pts_all = np.array([ra_all, dec_all]).T
+            pts = np.array([ra_random, dec_random]).T
+            max_distance = (rr/3600)*1.01
+
+            Tree = KDTree(pts_all)
+            idx = Tree.query_ball_point(pts, r=max_distance)
+            if idx == []:
+                sky.append(pts)
+            if k%100 == 0:
+                print('it is very crowded...')
+            if k == 1000:
+                print("infinite loop in finding sky. I found "+str(len(sky))+" for now..." )
+                print("try to reduce the radius")
+                break
+
+        self.sky = np.array(sky)
+
+        if show == True:
+            self.sky = McL.show_skypoint(self, ra_all, dec_all, rr)
+
+        print()
+        print("Saved "+str(len(self.sky))+" sky positions")
+        print()
+
+        return self.sky
+
+
+
+    def show_skypoint(self, ra_all, dec_all, rr):
+
+
+        ind = ['y']*len(self.sky)
+        ind = np.asarray(ind)
+        for n in range(len(self.sky)):
+            fig, ax = plt.subplots(figsize=(7,7), dpi=100)
+            dd = (rr/3600)*7
+            ralim = [self.sky[n][0]-dd,self.sky[n][0]+dd]
+            declim = [self.sky[n][1]-dd,self.sky[n][1]+dd]
+
+            i = np.where(((ra_all>=ralim[0]) & (ra_all<=ralim[1])) & ((dec_all>=declim[0]) & (dec_all<=declim[1])))
+
+            ax.scatter(ra_all[i], dec_all[i], marker='.', color='k', s=20)
+
+
+            circle1 = plt.Circle((self.sky[n][0], self.sky[n][1]), rr/3600, color='r', fill=False)
+            circle2 = plt.Circle((self.sky[n][0], self.sky[n][1]), 1.2/3600, color='r', fill=False)
+            ax.add_artist(circle1)
+            ax.add_artist(circle2)
+
+            plt.xlim(ralim[0], ralim[1])
+            plt.ylim(declim[0], declim[1])
+            plt.show(block=False)
+            ind[n] = str(input('Is it sky? [y,n]  '))
+            plt.close()
+
+
+        i = np.array(np.where(ind=='y')).reshape(-1)
+
+        return self.sky[i]

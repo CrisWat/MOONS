@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import pyramid as pyd
+#import pyramid as pyd
 from matplotlib.pylab import *
 import matplotlib.pyplot as plt
 #matplotlib.use('TKAgg')

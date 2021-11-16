@@ -1,8 +1,8 @@
 #######################################################
 #             Select Stars for MOONS - GC             #
 #                 Cristiano Fanelli                   #
-#                   0.1.0  Version                    #
-#                   09 - 11 - 2021                    #
+#                   0.0.2  Version                    #
+#                   22 - 10 - 2021                    #
 #######################################################
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -21,7 +21,7 @@
 
 #The full path to the file name, with the extension (.fits, .dat, .txt, ...)
 #if more than one catalogue, adding it as a list path1,path2,...,pathN !!!SAME FILETYPE!!!
-PATH		/Users/cristiano/phd/NICE/catalogues/333_d.fits,/Users/cristiano/phd/NICE/catalogues/334_d.fits
+PATH		/Users/cristiano/phd/NICE/catalogues/333_d.fits#,/Users/cristiano/phd/NICE/catalogues/334_d.fits
 
 #For spherical cut
 CENTRE_CUT	(0,0)		  # FLOAT (X0,Y0)

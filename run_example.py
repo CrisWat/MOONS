@@ -13,26 +13,29 @@ import time
 
 plot_layout()
 
-#initiallize time 
+#initiallize time
 s0 = time.time()
 
-#initiallize class 
-cat = McL() 
+#initiallize class
+cat = McL()
 
 #If you want to start with data already extracted
-#cat.import_catalogue_fromline(ID, ra, dec, l, b, J, H, Ks, rmag, ejk) 
+#cat.import_catalogue_fromline(ID, ra, dec, l, b, J, H, Ks, rmag, ejk)
 
 #if you want to read informations by the namelist file (If you import catalogue from line, you have to set -> from_line="yes")
 cat.read_input_namelist("namelist", from_line="no")
 
-#here you make the cut in mag
-cat.mag_cut()
-
 #here you make the cut in radius
 cat.spherical_cut()
+cutted_for_sky = cat.get_data()
+cat.get_info()
+
+#here you make the cut in mag
+cat.mag_cut()
+cutted_mag_and_radius = cat.get_data()
 
 #here you get the cutted data into an ndarray
-cutted_mag_and_radius = cat.get_data()
+cat.mag_cut()
 
 #here you get the de-reddened mag
 J0, H0, K0 = cat.extinction_correction()
@@ -42,6 +45,9 @@ J0, H0, K0 = cat.extinction_correction()
 i_RC, j_RC = cat.select_stars_fromCMD(COL="J-K", MAG="K", COL_VAL=[0.7,1.2], MAG_VAL=[12,13.5], return_index=True, print_columns="no")
 i_RGB, j_RGB = cat.select_stars_fromCMD(COL="J-K", MAG="K", COL_VAL=[0.3,2.0], MAG_VAL=[10,12], return_index=True)
 
+#here you find skypoints
+sky = cat.get_sky( cutted_for_sky[1], cutted_for_sky[2], rr = 1.4, n_fiber_sky=5, show=True)
+
 #name of the outputs
 name_output = "PROVA1.moons"
 
@@ -49,16 +55,18 @@ name_output = "PROVA1.moons"
 ID_RC, Ra_RC, Dec_RC, flag_RC, priority_RC, mag_input_RC = cat.make_priority_and_flag(i_RC, 1, j_RC, 0)
 ID_RGB, Ra_RGB, Dec_RGB, flag_RGB, priority_RGB, mag_input_RGB = cat.make_priority_and_flag(i_RGB, 3, j_RGB, 2)
 
-#here you merge catalogues derived from the two colors selections 
+#here you merge catalogues derived from the two colors selections
 IDw, Raw, Decw, flagw, priorityw, mag_inputw = cat.merge_catalogues(ID_RC, Ra_RC, Dec_RC, flag_RC, priority_RC, mag_input_RC,ID_RGB, Ra_RGB, Dec_RGB, flag_RGB, priority_RGB, mag_input_RGB)
 
 #here you write the input catalogue and parameter file for MOONLIGHT
-cat.write_MOONLIGHT_input(IDw, Raw, Decw, flagw, priorityw, mag_inputw, path_save="./", cat_name=name_output)
-cat.write_MOONLIGHT_param(path_save="./", cat_name=name_output, param_name=name_output+".ini")
+#cat.write_MOONLIGHT_input(IDw, Raw, Decw, flagw, priorityw, mag_inputw, path_save="./", cat_name=name_output)
+#cat.write_MOONLIGHT_param(path_save="./", cat_name=name_output, param_name=name_output+".ini")
 
 #print the time
 s1 = time.time()
 print(round(s1-s0,1), "seconds to make catalogues for MOONS")
+
+
 
 #plot the extintion map
 cat.plot_extinction(Ai="Ah")
@@ -79,10 +87,3 @@ K0_RGB  = K0mag_RGB
 JK0_RGB = J0mag_RGB - K0mag_RGB
 
 HessCMD.plotHess(K0_all, JK0_all,K0_RC,JK0_RC,K0_RGB,JK0_RGB, levels=np.arange(20,300,10), cbarrtitle='Number', xlab='$J_{0}$ $-$ $K_{0} (mag)$', ylab='$Ks_{0} (mag)$', saveas='K0vsJK0_l0.0b0.0_H17_dereddened.png', cbarr='Yes',xlims=[-1,5], ylims=[15,5],colormap='jet',ftitle= name_output+".pdf")
-
-
-
-
-
-
-
