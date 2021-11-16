@@ -86,4 +86,4 @@ JK0_RC  = J0mag_RC - K0mag_RC
 K0_RGB  = K0mag_RGB
 JK0_RGB = J0mag_RGB - K0mag_RGB
 
-HessCMD.plotHess(K0_all, JK0_all,K0_RC,JK0_RC,K0_RGB,JK0_RGB, levels=np.arange(20,300,10), cbarrtitle='Number', xlab='$J_{0}$ $-$ $K_{0} (mag)$', ylab='$Ks_{0} (mag)$', saveas='K0vsJK0_l0.0b0.0_H17_dereddened.png', cbarr='Yes',xlims=[-1,5], ylims=[15,5],colormap='jet',ftitle= name_output+".pdf")
+HessCMD.plotHess(K0_all, JK0_all,K0_RC,JK0_RC,K0_RGB,JK0_RGB, levels=np.arange(20,300,10), cbarrtitle='Number', xlab='$J_{0}$ $-$ $K_{0} (mag)$', ylab='$Ks_{0} (mag)$', saveas='PROVA1.png', cbarr='Yes',xlims=[-1,5], ylims=[15,5],colormap='jet',ftitle= name_output+".pdf")
