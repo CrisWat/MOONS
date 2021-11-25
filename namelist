@@ -1,8 +1,8 @@
 #######################################################
 #             Select Stars for MOONS - GC             #
 #                 Cristiano Fanelli                   #
-#                   0.0.2  Version                    #
-#                   22 - 10 - 2021                    #
+#                   0.2.0  Version                    #
+#                   24 - 11 - 2021                    #
 #######################################################
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -15,13 +15,13 @@
 # 25 - 10 - 2021	Cristiano Fanelli
 # You can use more than 1 catalogue (Max 3 for now)
 # TODO: generalize for N catalogue, with N>3
-# 01 - 11 - 2021 	Cristiano Fanelli
+# 24 - 11 - 2021 	Cristiano Fanelli
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 #The full path to the file name, with the extension (.fits, .dat, .txt, ...)
 #if more than one catalogue, adding it as a list path1,path2,...,pathN !!!SAME FILETYPE!!!
-PATH		/Users/cristiano/phd/NICE/catalogues/333_d.fits#,/Users/cristiano/phd/NICE/catalogues/334_d.fits
+PATH		/Users/cristiano/phd/NICE/catalogues/333_d.fits,/Users/cristiano/phd/NICE/catalogues/334_d.fits
 
 #For spherical cut
 CENTRE_CUT	(0,0)		  # FLOAT (X0,Y0)
@@ -41,7 +41,7 @@ K		None		  # [K0, K1]
 
 #For the parameter file
 
-hasGuideStar          false        # if false the guide probe will not be considered (true or false)
+hasGuideStar          true        # if false the guide probe will not be considered (true or false)
 guideStarRA           -999     	  # RA of the VLT guide star in decimal degrees
 guideStarDEC          -999	  # DEC of the VLT guide star in decimal degrees
 orientationGP         POS         # guide probe orientation (POS or NEG)
@@ -50,11 +50,11 @@ date                  06:11:2020  # Observing date, format mm:dd:yy
 time                  22:00:00    # Observing time, format hh:mm:ss
 airmass_limit         6           # Maximum airmass limit
 
-observingMode         XSWITCH     # observing strategy: STARE, XSWITCH, STAREandNOD
+observingMode         STARE       # observing strategy: STARE, XSWITCH, STAREandNOD
 noddingSize           30.0        # nodding size from 10 to 30 arcsec
 noddingDirection      90.0        # nodding direction from 0 to 360 degrees
 
-n_fibres_on_sky       100         # number of fibres dedicated to sky (STARE mode only)
+n_fibres_on_sky       0         # number of fibres dedicated to sky (STARE mode only)
 
 bi_policy             2           # 0 no burn-in; 1 burn-in; 2 burn-in and freeze
 bi_iterations         5           # Number of iterations during burn-in

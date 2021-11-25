@@ -7,7 +7,7 @@ Created on Fri Oct 22 12:35:09 2021
 
 import numpy as np
 from astropy.io import fits
-import matplotlib
+#import matplotlib
 import matplotlib.pyplot as plt
 from scipy.spatial import cKDTree
 from scipy.spatial import KDTree
@@ -358,7 +358,6 @@ class McL:
         #McL.get_info(self)
 
 
-
     def find_guidestar(self):
         """
         This function identifies coordinates of the guidestar.
@@ -403,6 +402,7 @@ class McL:
             Kmag      =     self.Kmag[index]
             rmag      =     self.rmag[index]
             E_jk      =     self.E_jk[index]
+            
             return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, rmag, E_jk
 
 
@@ -506,7 +506,7 @@ class McL:
                 elif (MAG_BAND_CUT=='K') or (MAG_BAND_CUT=='Ks'):
                     mag = self.Kmag
 
-                i = np.where(mag <= MAG_VAL_CUT)
+                i = np.where(mag <= self.MAG_VAL_CUT)
 
 
             id_obj    =     self.id_obj[i]
@@ -541,7 +541,8 @@ class McL:
                 elif MAG_BAND_CUT=='K':
                     mag = self.Kmag
 
-                i = np.where(mag <= MAG_VAL_CUT)
+                i = np.where(mag <= self.MAG_VAL_CUT)
+                
 
 
             self.id_obj    =     self.id_obj[i]
@@ -762,61 +763,49 @@ class McL:
 
 
 
-
-    def make_priority_and_flag2(self, sel_ID, prio): #slow
-        IDw, Raw, Decw = [], [], []
-        flag, priority, mag_input = [], [], []
-        for n in range(len(sel_ID)):
-            for m in range(len(self.id_obj)):
-                if self.id_obj[m]==sel_ID[n]:
-                    IDw.append(self.id_obj[m])
-                    Raw.append(self.ra[m])
-                    Decw.append(self.dec[m])
-                    flag.append("T")
-                    priority.append(prio)
-                    mag_input.append(self.Jmag[n])
-                elif (self.id_obj[m]!=sel_ID[n]) & ((self.rmag[m]<=20) & (self.rmag[m]>=15)):
-                    IDw.append(self.id_obj[m])
-                    Raw.append(self.ra[m])
-                    Decw.append(self.dec[m])
-                    flag.append("A")
-                    priority.append("0")
-                    mag_input.append(self.rmag[n])
-        IDw, Raw, Decw, flag, priority, mag_input = np.asarray(IDw), np.asarray(Raw), np.asarray(Decw), np.asarray(flag), np.asarray(priority), np.asarray(mag_input)
-        return IDw, Raw, Decw, flag, priority, mag_input
-
-
-
-    def make_priority_and_flag(self, i, prio_i, j, prio_j):
+    def make_priority_and_flag0(self, i, prio_i, flag):
         """
-        This function gives priority  (temporary, I have to change it with the
-        addition of de-blending).
+        This function gives priority and flag
         --------------------------
-        i, prio_i       : index and priority value for stars with this index
-        j, prio_j       : index and priority value for stars with this index
+        i, prio_i, flag       : index, priority and flag value for stars with this index
         """
         IDw, Raw, Decw = [], [], []
-        flag, priority, mag_input = [], [], []
+        flags, priority, mag_input = [], [], []
         for n in i[0]:
             IDw.append(self.id_obj[n])
             Raw.append(self.ra[n])
             Decw.append(self.dec[n])
-            flag.append("T")
+            flags.append(flag)
             priority.append(prio_i)
             mag_input.append(self.Jmag[n])
-        for m in j[0]:
-            IDw.append(self.id_obj[m])
-            Raw.append(self.ra[m])
-            Decw.append(self.dec[m])
-            flag.append("A")
-            priority.append(prio_j)
-            mag_input.append(self.rmag[m])
 
         IDw, Raw, Decw, flag, priority, mag_input = np.asarray(IDw), np.asarray(Raw), np.asarray(Decw), np.asarray(flag), np.asarray(priority), np.asarray(mag_input)
         o = np.argsort(IDw)
 
         return IDw[o], Raw[o], Decw[o], flag[o], priority[o], mag_input[o]
 
+
+    def make_priority_and_flag(self, id_obj, ra, dec, mag_input, i, prio_i, flag):
+        """
+        This function gives priority and flag
+        --------------------------
+        i, prio_i, flag       : index, priority and flag value for stars with this index
+        """
+        IDw, Raw, Decw = [], [], []
+        flags, priority, mag = [], [], []
+     
+        for n in i[0]:
+            IDw.append(id_obj[n])
+            Raw.append(ra[n])
+            Decw.append(dec[n])
+            flags.append(flag)
+            priority.append(prio_i)
+            mag.append(mag_input[n])
+
+        IDw, Raw, Decw, flag, priority, mag = np.asarray(IDw), np.asarray(Raw), np.asarray(Decw), np.asarray(flag), np.asarray(priority), np.asarray(mag)
+        #o = np.argsort(IDw)
+
+        return IDw, Raw, Decw, flag, priority, mag
 
 
 
@@ -900,8 +889,8 @@ class McL:
             file.write("#######################################################   \n".format())
             file.write("#             Select Stars for MOONS - GC             #   \n".format())
             file.write("#                 Cristiano Fanelli                   #   \n".format())
-            file.write("#                   0.1.0  Version                    #   \n".format())
-            file.write("#                   09 - 11 - 2021                    #   \n".format())
+            file.write("#                   0.2.0  Version                    #   \n".format())
+            file.write("#                   25 - 11 - 2021                    #   \n".format())
             file.write("#######################################################   \n".format())
             file.write("   \n".format())
             file.write("   \n".format())
@@ -987,7 +976,7 @@ class McL:
         if (Ai == "Ak") or (Ai == "Aks"):
             AA=self.Aks
 
-        fig=plt.figure(figsize=(9,7))
+        fig=plt.figure(figsize=(9,7), dpi=300)
         #fig.subplots_adjust(left=0.1,bottom=0.12,right=0.95,top=0.98,hspace=0.24,wspace=0.28)
         ax =  fig.add_subplot(111)
         ax.set_xlabel("l", fontsize=20)
@@ -1051,13 +1040,6 @@ class McL:
 
 
 
-
-
-        #########################################
-        ##########  DEBLENDING STARS  ###########
-        #########################################
-        ##########  WORK IN PROGRESS  ###########
-        #########################################
     def crossmatch(self, X1, X2, max_distance=np.inf):
             """Cross-match the values between X1 and X2
 
@@ -1190,11 +1172,10 @@ class McL:
             elif bl[n]==3:
                 blend_type.append('a3')
 
-        print(Counter(blend_type))
+        print('Priorities -> ',Counter(blend_type))
 
 
         return np.asarray(blend_type)
-
 
 
 
@@ -1237,10 +1218,15 @@ class McL:
         print()
         print("Saved "+str(len(self.sky))+" sky positions")
         print()
+        
+        idd_sky = ['sky_'+str(n) for n in range(len(sky))]
+        flag_sky = ['T']*len(sky)
+        priority_sky = [1]*len(sky)
+        mag_sky = [-99]*len(sky)
 
-        return self.sky
+        return idd_sky, self.sky[:,0], self.sky[:,1], flag_sky, priority_sky, mag_sky
 
-
+    print()
 
     def show_skypoint(self, ra_all, dec_all, rr):
 
