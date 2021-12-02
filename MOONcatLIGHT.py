@@ -976,7 +976,7 @@ class McL:
         if (Ai == "Ak") or (Ai == "Aks"):
             AA=self.Aks
 
-        fig=plt.figure(figsize=(9,7), dpi=300)
+        fig=plt.figure(figsize=(9,7), dpi=250)
         #fig.subplots_adjust(left=0.1,bottom=0.12,right=0.95,top=0.98,hspace=0.24,wspace=0.28)
         ax =  fig.add_subplot(111)
         ax.set_xlabel("l", fontsize=20)
@@ -987,9 +987,45 @@ class McL:
         cb.set_label(str(Ai[0])+"$_"+str(Ai[1])+"$", fontsize=20)
         fig.suptitle("    ", fontsize=20)
         fig.tight_layout()
-        plt.show()
         if namefig!=None:
-            fig.savefig(namefig+".pdf",dpi=120)
+            fig.savefig(namefig,dpi=120)
+        #plt.show()
+
+        plt.close(fig)
+
+
+    def plot_extinction_fibers(self, l, b, Ai = "Ah", namefig = None):
+        """
+        This function shows an extintion map
+        --------------------------
+        Ai          : Ah, Aj or Ak
+        namefig     : if a name is provided, then save the
+        figure (inpdf)
+        """
+        AA='s'
+        if Ai == "Aj":
+            AA=self.Aj
+        if Ai == "Ah":
+            AA=self.Ah
+        if (Ai == "Ak") or (Ai == "Aks"):
+            AA=self.Aks
+
+        fig=plt.figure(figsize=(9,7), dpi=250)
+        #fig.subplots_adjust(left=0.1,bottom=0.12,right=0.95,top=0.98,hspace=0.24,wspace=0.28)
+        ax =  fig.add_subplot(111)
+        ax.set_xlabel("l", fontsize=20)
+        ax.set_ylabel("b", fontsize=20)
+        cm = plt.cm.get_cmap('jet')
+        sc = ax.scatter(self.l,self.b,edgecolor="none", s=3, c=AA,cmap=cm, label=" "%np.sum(AA))
+        cb=plt.colorbar(sc)
+        cb.set_label(str(Ai[0])+"$_"+str(Ai[1])+"$", fontsize=20)
+        ax.scatter(l, b, color='k',zorder=5)
+        fig.suptitle("    ", fontsize=20)
+        fig.tight_layout()
+        if namefig!=None:
+            fig.savefig(namefig,dpi=120)
+        else:
+            plt.show()
 
         plt.close(fig)
 
@@ -1013,9 +1049,9 @@ class McL:
             Jmag      =     self.Jmag
             Hmag      =     self.Hmag
             Kmag      =     self.Kmag
-            J0mag      =    self.J0mag
-            H0mag      =    self.H0mag
-            K0mag      =    self.K0mag
+            J0mag     =     self.J0mag
+            H0mag     =     self.H0mag
+            K0mag     =     self.K0mag
             rmag      =     self.rmag
             E_jk      =     self.E_jk
 
@@ -1035,7 +1071,7 @@ class McL:
             H0mag     =     self.H0mag[index]
             K0mag     =     self.K0mag[index]
             E_jk      =     self.E_jk[index]
-        return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, J0mag, H0mag, K0mag, rmag, E_jk
+            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, J0mag, H0mag, K0mag, rmag, E_jk
 
 
 
@@ -1154,9 +1190,9 @@ class McL:
                 for m in range(n_blend):
                     if (ID_all[idx[n]][m]!=ID[n]) & (mag_all[idx[n]][m]<=mag[n]):
                         bl[n] = 3
-                    elif (ID_all[idx[n]][m]!=ID[n]) & ((mag_all[idx[n]][m]>mag[n]) & (mag_all[idx[n]][m]<(mag[n]+1))):
+                    elif (ID_all[idx[n]][m]!=ID[n]) & ((mag_all[idx[n]][m]>mag[n]) & (mag_all[idx[n]][m]<(mag[n]+3))):
                         bl[n] = 2
-                    elif (ID_all[idx[n]][m]!=ID[n]) & (mag_all[idx[n]][m]>=(mag[n]+1)):
+                    elif (ID_all[idx[n]][m]!=ID[n]) & (mag_all[idx[n]][m]>=(mag[n]+3)):
                         bl[n] = 1
             elif n_blend==1:
                 bl[n] = 0
@@ -1259,3 +1295,12 @@ class McL:
         i = np.array(np.where(ind=='y')).reshape(-1)
 
         return self.sky[i]
+
+
+
+
+
+
+
+
+

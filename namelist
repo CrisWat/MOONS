@@ -24,7 +24,7 @@
 PATH		/Users/cristiano/phd/NICE/catalogues/333_d.fits,/Users/cristiano/phd/NICE/catalogues/334_d.fits
 
 #For spherical cut
-CENTRE_CUT	(0,0)		  # FLOAT (X0,Y0)
+CENTRE_CUT	(0.0,0.0)		  # FLOAT (X0,Y0)
 RADIUS_CUT	0.25		  # FLOAT
 
 #For magnitude cut in J, H or K band
