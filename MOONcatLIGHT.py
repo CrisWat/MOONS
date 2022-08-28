@@ -12,7 +12,8 @@ import matplotlib.pyplot as plt
 from scipy.spatial import cKDTree
 from scipy.spatial import KDTree
 from collections import Counter
-
+from scipy.spatial import distance_matrix
+from sklearn.cluster import KMeans
 
 
 class McL:
@@ -20,12 +21,14 @@ class McL:
 
     def __init__ (self):
         print()
+        print("********************************")
         print("***MOONcatLIGHT Class Started***")
+        print("********************************")
         print()
 
 
 
-    def import_catalogues(self, pathfile, cols=(0,1,2,3,4,5,6,7,8,9)):
+    def import_catalogues(self, pathfile, cols=(0,1,2,3,4,5,6,7,9)):
         """
         This function identifies the extension of the catalog file
         and the number of catalogues to merge
@@ -46,7 +49,7 @@ class McL:
 
             #Da Fare il check sui cataloghi multipli in txt
             if type_input=='ascii':
-                self.id_obj, self.ra, self.dec, self.l, self.b, self.Jmag, self.Hmag, self.Kmag, self.rmag, self.E_jk = np.genfromtxt(pathfile, usecols=cols, dtype='float', unpack=True)
+                self.id_obj, self.ra, self.dec, self.l, self.b, self.Jmag, self.Hmag, self.Kmag, self.E_jk = np.genfromtxt(pathfile, usecols=cols, dtype='float', unpack=True)
             elif type_input=='fits':
                 f           =   fits.open(pathfile)
                 f_in        =   f[1].data
@@ -58,12 +61,10 @@ class McL:
                 self.Jmag   =   f_in['J']
                 self.Hmag   =   f_in['H']
                 self.Kmag   =   f_in['K']
-                self.rmag   =   f_in['rmag']
                 self.E_jk   =   f_in['EJK']
                 self.Hmag[np.isnan(self.Hmag)]   =  -999
                 self.Jmag[np.isnan(self.Jmag)]   =  -999
                 self.Kmag[np.isnan(self.Kmag)]   =  -999
-                self.rmag[np.isnan(self.rmag)]   =  -999
                 self.E_jk[np.isnan(self.E_jk)]   =  -999
 
 
@@ -82,7 +83,6 @@ class McL:
                     self.Jmag.append(ft)
                     self.Hmag.append(gt)
                     self.Kmag.append(ht)
-                    self.rmag.append(it)
                     self.E_jk.append(lt)
 
             elif type_input=='fits':
@@ -98,7 +98,6 @@ class McL:
                     ft.append(f_in['J'])
                     gt.append(f_in['H'])
                     ht.append(f_in['K'])
-                    it.append(f_in['rmag'])
                     lt.append(f_in['EJK'])
                 at   =   np.asarray(at, dtype=object)
                 bt   =   np.asarray(bt, dtype=object)
@@ -108,7 +107,6 @@ class McL:
                 ft   =   np.asarray(ft, dtype=object)
                 gt   =   np.asarray(gt, dtype=object)
                 ht   =   np.asarray(ht, dtype=object)
-                it   =   np.asarray(it, dtype=object)
                 lt   =   np.asarray(lt, dtype=object)
                 if len(paths) == 2:
                     self.id_obj   =   np.concatenate((at[0],at[1]))
@@ -119,7 +117,6 @@ class McL:
                     self.Jmag     =   np.concatenate((ft[0],ft[1]))
                     self.Hmag     =   np.concatenate((gt[0],gt[1]))
                     self.Kmag     =   np.concatenate((ht[0],ht[1]))
-                    self.rmag     =   np.concatenate((it[0],it[1]))
                     self.E_jk     =   np.concatenate((lt[0],lt[1]))
                 elif len(paths) == 3:
                     self.id_obj   =   np.concatenate((at[0],at[1],at[2]))
@@ -130,21 +127,19 @@ class McL:
                     self.Jmag     =   np.concatenate((ft[0],ft[1],ft[2]))
                     self.Hmag     =   np.concatenate((gt[0],gt[1],gt[2]))
                     self.Kmag     =   np.concatenate((ht[0],ht[1],ht[2]))
-                    self.rmag     =   np.concatenate((it[0],it[1],it[2]))
                     self.E_jk     =   np.concatenate((lt[0],lt[1],lt[2]))
                 self.Jmag[np.isnan(self.Jmag)]   =  -999
                 self.Hmag[np.isnan(self.Hmag)]   =  -999
                 self.Kmag[np.isnan(self.Kmag)]   =  -999
-                self.rmag[np.isnan(self.rmag)]   =  -999
                 self.E_jk[np.isnan(self.E_jk)]   =  -999
 
                 McL.clean_for_duplicate(self)
 
-        return self.id_obj, self.ra, self.dec, self.l, self.b, self.Jmag, self.Hmag, self.Kmag, self.rmag, self.E_jk
+        return self.id_obj, self.ra, self.dec, self.l, self.b, self.Jmag, self.Hmag, self.Kmag, self.E_jk
 
 
 
-    def import_catalogue_fromline(self, id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, rmag, E_jk):
+    def import_catalogue_fromline(self, id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, E_jk):
         """
         This function import data of a catalog file directly from line.
         Here is to make variables explicit
@@ -158,7 +153,6 @@ class McL:
         self.Jmag      =     Jmag
         self.Hmag      =     Hmag
         self.Kmag      =     Kmag
-        self.rmag      =     rmag
         self.E_jk      =     E_jk
 
         McL.clean_for_duplicate(self)
@@ -202,7 +196,7 @@ class McL:
 
 
 
-    def import_catalogue(self, pathfile, cols=(0,1,2,3,4,5,6,7,8,9)):
+    def import_catalogue(self, pathfile, cols=(0,1,2,3,4,5,6,7,9)):
         """
         This function import single catalog file
         --------------------------
@@ -216,7 +210,7 @@ class McL:
             type_input='ascii'
 
         if type_input=='ascii':
-            self.id_obj, self.ra, self.dec, self.l, self.b, self.Jmag, self.Hmag, self.Kmag, self.rmag, self.E_jk = np.genfromtxt(pathfile, usecols=cols, dtype='float', unpack=True)
+            self.id_obj, self.ra, self.dec, self.l, self.b, self.Jmag, self.Hmag, self.Kmag, self.E_jk = np.genfromtxt(pathfile, usecols=cols, dtype='float', unpack=True)
         elif type_input=='fits':
             f           =   fits.open(pathfile)
             f_in        =   f[1].data
@@ -228,12 +222,10 @@ class McL:
             self.Jmag   =   f_in['J']
             self.Hmag   =   f_in['H']
             self.Kmag   =   f_in['K']
-            self.rmag   =   f_in['rmag']
             self.E_jk   =   f_in['EJK']
             self.Hmag[np.isnan(self.Hmag)]   =  -999
             self.Jmag[np.isnan(self.Jmag)]   =  -999
             self.Kmag[np.isnan(self.Kmag)]   =  -999
-            self.rmag[np.isnan(self.rmag)]   =  -999
             self.E_jk[np.isnan(self.E_jk)]   =  -999
 
         McL.clean_for_duplicate(self)
@@ -254,11 +246,12 @@ class McL:
             print(len(self.id_obj),"->",len(newid_obj))
             print(str(delta),"objects have been deleted ")
             print()
-            self.id_obj, self.ra, self.dec, self.l, self.b, self.Jmag, self.Hmag, self.Kmag, self.rmag, self.E_jk = self.id_obj[i], self.ra[i], self.dec[i], self.l[i], self.b[i], self.Jmag[i], self.Hmag[i], self.Kmag[i], self.rmag[i], self.E_jk[i]
+            self.id_obj, self.ra, self.dec, self.l, self.b, self.Jmag, self.Hmag, self.Kmag, self.E_jk = self.id_obj[i], self.ra[i], self.dec[i], self.l[i], self.b[i], self.Jmag[i], self.Hmag[i], self.Kmag[i], self.E_jk[i]
         else:
             print()
-            print("There are not duplicate objects in this catalogue (by their ID and/or coordinates)")
+            print("There are not duplicate objects in this catalogue (by their ID)")
             print()
+        
 
 
     def read_input_namelist(self, pathfile="./",from_line="no", print_info="no"):
@@ -281,6 +274,7 @@ class McL:
                 McL.import_catalogues(self, path_cat)
             elif from_line=="yes":
                 print("Data catalogue imported from line command")
+                #McL.import_catalogue_fromline(self, id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, E_jk)
                 pass
 
 
@@ -323,31 +317,40 @@ class McL:
 
             self.PATH                =       str(val[0])
             self.CENTRE_CUT          =       np.array([x1,y1])
-            self.RADIUS_CUT          =       float(val[2])
+            self.RADIUS_CUT          =       float(val[2])/60.
             self.MAG_BAND_CUT        =       str(val[3])
             self.MAG_VAL_CUT         =       float(val[4])
             self.Type                =       str(val[5])
             self.COL_VAL             =       np.array([x6,y6])
             self.MAG_VAL             =       np.array([x7,y7])
-            self.hasGuideStar        =       str(val[8])
-            self.guideStarRA         =       float(val[9])
-            self.guideStarDEC        =       float(val[10])
-            self.orientationGP       =       str(val[11])
-            self.date                =       str(val[12])
-            self.time                =       str(val[13])
-            self.airmass_limit       =       float(val[14])
-            self.observingMode       =       str(val[15])
-            self.noddingSize         =       float(val[16])
-            self.noddingDirection    =       float(val[17])
-            self.n_fibres_on_sky     =       float(val[18])
-            self.bi_policy           =       float(val[19])
-            self.bi_iterations       =       float(val[20])
-            self.bi_max_priority     =       float(val[21])
-            self.T_initial           =       float(val[22])
-            self.T_final             =       float(val[23])
-            self.T_delta             =       float(val[24])
-            self.iterations          =       float(val[25])
-            self.random_seed         =       float(val[26])
+            self.N_TELL              =       np.int(val[8])
+            self.COL_TELL            =       float(val[9])
+            self.MAG_TELL            =       float(val[10])
+            self.N_SKY              =       int(val[11])
+            self.N_CELL              =       int(val[12])
+            self.N_SKY_XCELL         =       float(val[13])
+            self.SKYSIZE             =       float(val[14])
+            self.RADIUS_DEBL         =       str(val[15])
+            self.EXT_CORR            =       str(val[16])
+            self.hasGuideStar        =       str(val[17])
+            self.guideStarRA         =       float(val[18])
+            self.guideStarDEC        =       float(val[19])
+            self.orientationGP       =       str(val[20])
+            self.date                =       str(val[21])
+            self.time                =       str(val[22])
+            self.airmass_limit       =       float(val[23])
+            self.observingMode       =       str(val[24])
+            self.noddingSize         =       float(val[25])
+            self.noddingDirection    =       float(val[26])
+            self.n_fibres_on_sky     =       float(val[27])
+            self.bi_policy           =       float(val[28])
+            self.bi_iterations       =       float(val[29])
+            self.bi_max_priority     =       float(val[30])
+            self.T_initial           =       float(val[31])
+            self.T_final             =       float(val[32])
+            self.T_delta             =       float(val[33])
+            self.iterations          =       float(val[34])
+            self.random_seed         =       float(val[35])
         elif do == 'no':
             pass
 
@@ -356,19 +359,6 @@ class McL:
             [print(keyw[n], val[n]) for n in range(len(val))]
 
         #McL.get_info(self)
-
-
-    def find_guidestar(self):
-        """
-        This function identifies coordinates of the guidestar.
-        """
-        rmag_min  = np.min(self.rmag[(self.rmag!=-999) ])
-        self.guideStarRA = self.ra[self.rmag==rmag_min]
-        self.guideStarDEC = self.dec[self.rmag==rmag_min]
-
-
-        return self.guideStarRA, self.guideStarDEC
-
 
 
     def get_data(self, index=None):
@@ -387,10 +377,9 @@ class McL:
             Jmag      =     self.Jmag
             Hmag      =     self.Hmag
             Kmag      =     self.Kmag
-            rmag      =     self.rmag
             E_jk      =     self.E_jk
 
-            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, rmag, E_jk
+            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, E_jk
         else:
             id_obj    =     self.id_obj[index]
             ra        =     self.ra[index]
@@ -400,10 +389,9 @@ class McL:
             Jmag      =     self.Jmag[index]
             Hmag      =     self.Hmag[index]
             Kmag      =     self.Kmag[index]
-            rmag      =     self.rmag[index]
             E_jk      =     self.E_jk[index]
-            
-            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, rmag, E_jk
+
+            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, E_jk
 
 
     def spherical_cut(self, CENTRE_CUT=None, RADIUS_CUT=None, option_self="yes"):
@@ -440,10 +428,9 @@ class McL:
             Jmag      =     self.Jmag[i]
             Hmag      =     self.Hmag[i]
             Kmag      =     self.Kmag[i]
-            rmag      =     self.rmag[i]
             E_jk      =     self.E_jk[i]
 
-            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, rmag, E_jk
+            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, E_jk
 
         elif option_self=="yes":
             if (CENTRE_CUT==None) & (RADIUS_CUT==None) :
@@ -470,10 +457,80 @@ class McL:
             self.Jmag      =     self.Jmag[i]
             self.Hmag      =     self.Hmag[i]
             self.Kmag      =     self.Kmag[i]
-            self.rmag      =     self.rmag[i]
             self.E_jk      =     self.E_jk[i]
 
 
+    def spherical_cut_radec(self, CENTRE_CUT=None, RADIUS_CUT=None, option_self="yes"):
+        """
+        This function cut data into a circle
+        --------------------------
+        CENTRE_CUT : coordinates of the centre
+        RADIUS_CUT : radius of the circle
+        option_self : if "yes" it update the self.data, otherwise it extraxts
+        cutted data
+        """
+        if option_self=="no":
+            if (CENTRE_CUT==None) & (RADIUS_CUT==None) :
+                ra_centre    =    self.CENTRE_CUT[0]
+                dec_centre    =    self.CENTRE_CUT[1]
+
+                radius = np.sqrt( (self.ra-ra_centre)**2+(self.dec-dec_centre)**2 )
+
+                i = np.where(radius <= self.RADIUS_CUT)
+            else:
+                ra_centre    =    CENTRE_CUT[0]
+                dec_centre    =    CENTRE_CUT[1]
+
+                radius = np.sqrt( (self.ra-ra_centre)**2+(self.dec-dec_centre)**2 )
+
+                i = np.where(radius <= RADIUS_CUT)
+
+
+            id_obj    =     self.id_obj[i]
+            ra        =     self.ra[i]
+            dec       =     self.dec[i]
+            l         =     self.l[i]
+            b         =     self.b[i]
+            Jmag      =     self.Jmag[i]
+            Hmag      =     self.Hmag[i]
+            Kmag      =     self.Kmag[i]
+            E_jk      =     self.E_jk[i]
+
+            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, E_jk
+
+        elif option_self=="yes":
+            if (CENTRE_CUT==None) & (RADIUS_CUT==None) :
+                ra_centre    =    self.CENTRE_CUT[0]
+                dec_centre   =    self.CENTRE_CUT[1]
+
+                radius = np.sqrt( (self.ra-ra_centre)**2+(self.dec-dec_centre)**2 )
+
+                i = np.where(radius <= self.RADIUS_CUT)
+            else:
+                ra_centre    =    CENTRE_CUT[0]
+                dec_centre   =    CENTRE_CUT[1]
+
+                radius = np.sqrt( (self.ra-ra_centre)**2+(self.dec-dec_centre)**2 )
+
+                i = np.where(radius <= RADIUS_CUT)
+
+            self.id_obj    =     self.id_obj[i]
+            self.ra        =     self.ra[i]
+            self.dec       =     self.dec[i]
+            self.l         =     self.l[i]
+            self.b         =     self.b[i]
+            self.Jmag      =     self.Jmag[i]
+            self.Hmag      =     self.Hmag[i]
+            self.Kmag      =     self.Kmag[i]
+            self.E_jk      =     self.E_jk[i]
+
+
+
+
+    def select_tellurics(self):
+        i = np.where((self.Hmag<self.MAG_TELL) & ((self.Jmag-self.Hmag)<self.COL_TELL))
+        
+        return list(i[0][:int(self.N_TELL)]), i
 
 
 
@@ -517,10 +574,9 @@ class McL:
             Jmag      =     self.Jmag[i]
             Hmag      =     self.Hmag[i]
             Kmag      =     self.Kmag[i]
-            rmag      =     self.rmag[i]
             E_jk      =     self.E_jk[i]
 
-            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, rmag, E_jk
+            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, E_jk
 
         elif option_self=="yes":
 
@@ -542,7 +598,7 @@ class McL:
                     mag = self.Kmag
 
                 i = np.where(mag <= self.MAG_VAL_CUT)
-                
+
 
 
             self.id_obj    =     self.id_obj[i]
@@ -553,7 +609,6 @@ class McL:
             self.Jmag      =     self.Jmag[i]
             self.Hmag      =     self.Hmag[i]
             self.Kmag      =     self.Kmag[i]
-            self.rmag      =     self.rmag[i]
             self.E_jk      =     self.E_jk[i]
 
 
@@ -617,7 +672,7 @@ class McL:
 
 
 
-    def select_stars_fromCMD(self, COL="J-K", MAG="K", COL_VAL=None, MAG_VAL=None, return_index=False, print_columns="no"):
+    def select_stars_fromCMD(self, COL="J-H", MAG="H", COL_VAL=None, MAG_VAL=None, return_index=False, print_columns="no"):
         """
         This function select stars from CMD. If more than one selection, use inline
         mode (put None in namelist)
@@ -629,22 +684,46 @@ class McL:
         return_index    : "yes" if you want only the index of data
         print_columns   : "yes" if you want informations about columns extracted
         """
-        if ( (COL=="J-K") & (MAG=="K") & (COL_VAL!=None) & (MAG_VAL!=None)):
+        
+        if ( (COL=="J0-K0") & (MAG=="K0") & (COL_VAL!=None) & (MAG_VAL!=None)):
             i = np.where( (self.J0mag-self.K0mag<=np.max(COL_VAL)) &
             (self.J0mag-self.K0mag>=np.min(COL_VAL)) &
             (self.K0mag<=np.max(MAG_VAL)) & (self.K0mag>=np.min(MAG_VAL)) )
-            j = np.where( ((self.J0mag-self.K0mag>np.max(COL_VAL)) |
-            (self.J0mag-self.K0mag<np.min(COL_VAL)) |
-            (self.K0mag>np.max(MAG_VAL)) | (self.K0mag<np.min(MAG_VAL)))
-                         & ((self.rmag<20) & (self.rmag>15)))
-        elif ( (COL=="J-K") & (MAG=="K") & (COL_VAL==None) & (MAG_VAL==None)):
+        elif ( (COL=="J0-K0") & (MAG=="K0") & (COL_VAL==None) & (MAG_VAL==None)):
             i = np.where( (self.J0mag-self.K0mag<=np.max(self.COL_VAL)) &
             (self.J0mag-self.K0mag>=np.min(self.COL_VAL)) &
             (self.K0mag<=np.max(self.MAG_VAL)) & (self.K0mag>=np.min(self.MAG_VAL)) )
-            j = np.where( ((self.J0mag-self.K0mag>np.max(self.COL_VAL)) |
-            (self.J0mag-self.K0mag<np.min(self.COL_VAL)) |
-            (self.K0mag>np.max(self.MAG_VAL)) | (self.K0mag<np.min(self.MAG_VAL)))
-                         & ((self.rmag<20) & (self.rmag>15)))
+
+        elif ( (COL=="J-K") & (MAG=="K") & (COL_VAL!=None) & (MAG_VAL!=None)):
+            i = np.where( (self.Jmag-self.Kmag<=np.max(COL_VAL)) &
+            (self.Jmag-self.Kmag>=np.min(COL_VAL)) &
+            (self.Kmag<=np.max(MAG_VAL)) & (self.Kmag>=np.min(MAG_VAL)) )
+            j = np.where( ((self.Jmag-self.Kmag>np.max(COL_VAL)) |
+            (self.Jmag-self.Kmag<np.min(COL_VAL)) |
+            (self.Kmag>np.max(MAG_VAL)) | (self.Kmag<np.min(MAG_VAL))))
+        elif ( (COL=="J-K") & (MAG=="K") & (COL_VAL==None) & (MAG_VAL==None)):
+            i = np.where( (self.Jmag-self.Kmag<=np.max(self.COL_VAL)) &
+            (self.Jmag-self.Kmag>=np.min(self.COL_VAL)) &
+            (self.Kmag<=np.max(self.MAG_VAL)) & (self.Kmag>=np.min(self.MAG_VAL)) )
+
+        elif ( (COL=="J0-H0") & (MAG=="H0") & (COL_VAL!=None) & (MAG_VAL!=None)):
+            i = np.where( (self.J0mag-self.H0mag<=np.max(COL_VAL)) &
+            (self.J0mag-self.H0mag>=np.min(COL_VAL)) &
+            (self.H0mag<=np.max(MAG_VAL)) & (self.H0mag>=np.min(MAG_VAL)) )
+        elif ( (COL=="J0-H0") & (MAG=="H0") & (COL_VAL==None) & (MAG_VAL==None)):
+            i = np.where( (self.J0mag-self.H0mag<=np.max(self.COL_VAL)) &
+            (self.J0mag-self.H0mag>=np.min(self.COL_VAL)) &
+            (self.H0mag<=np.max(self.MAG_VAL)) & (self.H0mag>=np.min(self.MAG_VAL)) )
+
+        elif ( (COL=="J-H") & (MAG=="H") & (COL_VAL!=None) & (MAG_VAL!=None)):
+            i = np.where( (self.Jmag-self.Hmag<=np.max(COL_VAL)) &
+            (self.Jmag-self.Hmag>=np.min(COL_VAL)) &
+            (self.Hmag<=np.max(MAG_VAL)) & (self.Hmag>=np.min(MAG_VAL)) )
+        elif ( (COL=="J-H") & (MAG=="H") & (COL_VAL==None) & (MAG_VAL==None)):
+            i = np.where( (self.Jmag-self.Hmag<=np.max(self.COL_VAL)) &
+            (self.Jmag-self.Hmag>=np.min(self.COL_VAL)) &
+            (self.Hmag<=np.max(self.MAG_VAL)) & (self.Hmag>=np.min(self.MAG_VAL)) )
+
 
         if return_index==False:
             id_obj_cut    =     self.id_obj[i]
@@ -658,38 +737,37 @@ class McL:
             J0mag_cut     =     self.J0mag[i]
             H0mag_cut     =     self.H0mag[i]
             K0mag_cut     =     self.K0mag[i]
-            rmag_cut      =     self.rmag[i]
             E_jk_cut      =     self.E_jk[i]
 
             if ( (print_columns!="no")):
-                print("Columns are: id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, J0mag, H0mag, K0mag, rmag, E_jk")
+                print("Columns are: id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, J0mag, H0mag, K0mag, E_jk")
 
-            return id_obj_cut, ra_cut, dec_cut, l_cut, b_cut, Jmag_cut, Hmag_cut, Kmag_cut, J0mag_cut, H0mag_cut, K0mag_cut, rmag_cut, E_jk_cut
+            return id_obj_cut, ra_cut, dec_cut, l_cut, b_cut, Jmag_cut, Hmag_cut, Kmag_cut, J0mag_cut, H0mag_cut, K0mag_cut, E_jk_cut
         elif return_index==True:
 
             if ( (print_columns!="no")):
                 print("Columns are: i (index of Target) and j (index acquisition)")
 
-            return i, j
+            return i
 
 
 
 
-    def write_MOONLIGHT_param(self, path_save="./", cat_name=None, param_name=None):
+    def write_MOONLIGHT_param(self, savepath="./", cat_name=None, param_name=None):
         """
         This function select stars from CMD. If more than one selection, use inline
         mode (put None in namelist)
         --------------------------
-        path_save       : path in which you want the innput parameter file of MOONLIGHT
+        savepath       : path in which you want the innput parameter file of MOONLIGHT
         cat_name        : name of the catalogue which you will use for MOONLIGHT
         param_name      : name of the file without extention
         """
-        if ((self.guideStarRA==-999) & (self.guideStarDEC==-999)):
-            self.guideStarRA, self.guideStarDEC = McL.find_guidestar(self)
+        #if ((self.guideStarRA==-999) & (self.guideStarDEC==-999)):
+        #    self.guideStarRA, self.guideStarDEC = McL.find_guidestar(self)
 
 
 
-        file=open(path_save+param_name,"w")
+        file=open(savepath+param_name,"w")
         file.write("#******************************************************************************    \n".format())
         file.write("#E.S.O. - VLT project                                                             \n".format())
         file.write("#                                                                                 \n".format())
@@ -701,7 +779,7 @@ class McL:
         file.write("#                                                                                 \n".format())
         file.write("catalogueFilename  {}      #input source catalogue                          \n".format(str(cat_name)))
         file.write("                                                                                   \n".format())
-        file.write("outputDirectory {}    #directory where OPS output will be written            \n".format(str(path_save)))
+        file.write("outputDirectory {}    #directory where OPS output will be written            \n".format(str(savepath)))
         file.write("                                                                                   \n".format())
         file.write("#THESE WILL BE PASSED ON FROM OB                                                   \n".format())
         file.write("                                                                                   \n".format())
@@ -715,8 +793,8 @@ class McL:
         file.write("#VLT guide star                                                                   \n".format())
         file.write("#                                                                                 \n ".format())
         file.write("hasGuideStar   {}      #if false the guide probe will not be considered (true or false)   \n".format(self.hasGuideStar))
-        file.write("guideStarRA    {:=6.2f}     #RA of the VLT guide star in decimal degrees  \n".format(self.guideStarRA[0]))
-        file.write("guideStarDEC   {:=6.2f}     #DEC of the VLT guide star in decimal degrees \n".format(self.guideStarDEC[0]))
+        file.write("guideStarRA    {:=6.2f}     #RA of the VLT guide star in decimal degrees  \n".format(self.guideStarRA))
+        file.write("guideStarDEC   {:=6.2f}     #DEC of the VLT guide star in decimal degrees \n".format(self.guideStarDEC))
         file.write("orientationGP  {}        #guide probe orientation (POS or NEG)            \n".format(self.orientationGP))
         file.write("                                                                                   \n".format())
         file.write("#******** Constraint set   \n".format())
@@ -793,7 +871,7 @@ class McL:
         """
         IDw, Raw, Decw = [], [], []
         flags, priority, mag = [], [], []
-     
+
         for n in i[0]:
             IDw.append(id_obj[n])
             Raw.append(ra[n])
@@ -846,7 +924,7 @@ class McL:
 
 
 
-    def write_MOONLIGHT_input(self, ID, Ra, Dec, flag, priority, mag, path_save="./", cat_name=None):
+    def write_MOONLIGHT_input(self, ID, Ra, Dec, flag, priority, mag, savepath="./", cat_name=None):
         """
         This function write the MOONLIGHT input catalogue from line
         --------------------------
@@ -856,11 +934,11 @@ class McL:
         flag        :   target, acquiisition, sky
         priority    :
         mag         :   J or r magnitude
-        path_save   :
+        savepath   :
         cat_name    :
         """
         _, i = np.unique(ID, return_index=True)
-        file=open(path_save+cat_name,"w")
+        file=open(savepath+cat_name,"w")
         file.write("# ID          RA        DEC        flag   priority   mag  \n".format())
         for val in zip(ID[i], Ra[i], Dec[i], flag[i], priority[i], mag[i]):
                 file.write('  {:10}   {:=9.5f}   {:=9.5f}   {:1}   {:=1.0f}   {:=7.4f}   \n'.format(val[0],val[1],val[2],val[3],val[4],val[5]))
@@ -889,15 +967,15 @@ class McL:
             file.write("#######################################################   \n".format())
             file.write("#             Select Stars for MOONS - GC             #   \n".format())
             file.write("#                 Cristiano Fanelli                   #   \n".format())
-            file.write("#                   0.2.0  Version                    #   \n".format())
-            file.write("#                   25 - 11 - 2021                    #   \n".format())
+            file.write("#                   0.3.0  Version                    #   \n".format())
+            file.write("#                   29 - 04 - 2022                    #   \n".format())
             file.write("#######################################################   \n".format())
             file.write("   \n".format())
             file.write("   \n".format())
             file.write("#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   \n".format())
             file.write("# Comments:   \n".format())
             file.write("# For V-0.0.1 the files (both ascii and fits) must be arranged   \n".format())
-            file.write("# in columns as: *"'ID, ra, dec, l, b, J, H, Ks, rmag, E(J-K)'"   \n".format())
+            file.write("# in columns as: *"'ID, ra, dec, l, b, J, H, Ks, E(J-K)'"   \n".format())
             file.write("# TODO: Merging of more than 1 catalogue at the starting point   \n".format())
             file.write("# TODO: automatic recognition of columns file (maybe? Is it useful?)   \n".format())
             file.write("# of columns.   \n".format())
@@ -913,12 +991,12 @@ class McL:
             file.write("PATH		/Users/cristiano/phd/NICE/catalogues/333_d.fits,/Users/cristiano/phd/NICE/catalogues/334_d.fits   \n".format())
             file.write("   \n".format())
             file.write("#For spherical cut   \n".format())
-            file.write("CENTRE_CUT	(0,0)		  # FLOAT (X0,Y0)   \n".format())
-            file.write("RADIUS_CUT	0.10		  # FLOAT   \n".format())
+            file.write("CENTRE_CUT	 (0,0)		  # FLOAT (X0,Y0)   \n".format())
+            file.write("RADIUS_CUT	 0.10		  # FLOAT   \n".format())
             file.write("   \n".format())
             file.write("#For magnitude cut in J, H or K band   \n".format())
             file.write("MAG_BAND_CUT	H		  # STRING   \n".format())
-            file.write("MAG_VAL_CUT	17		  # FLOAT   \n".format())
+            file.write("MAG_VAL_CUT	    17		  # FLOAT   \n".format())
             file.write("   \n".format())
             file.write("#For selecting a type of stars into a square   \n".format())
             file.write("#it gives values as in *Comments   \n".format())
@@ -960,7 +1038,7 @@ class McL:
 
 
 
-    def plot_extinction(self, Ai = "Ah", namefig = None):
+    def plot_extinction(self, Ai = "Ah", namefig = None, savepath= './'):
         """
         This function shows an extintion map
         --------------------------
@@ -976,7 +1054,7 @@ class McL:
         if (Ai == "Ak") or (Ai == "Aks"):
             AA=self.Aks
 
-        fig=plt.figure(figsize=(9,7), dpi=250)
+        fig=plt.figure(figsize=(9,7), dpi=300)
         #fig.subplots_adjust(left=0.1,bottom=0.12,right=0.95,top=0.98,hspace=0.24,wspace=0.28)
         ax =  fig.add_subplot(111)
         ax.set_xlabel("l", fontsize=20)
@@ -987,9 +1065,8 @@ class McL:
         cb.set_label(str(Ai[0])+"$_"+str(Ai[1])+"$", fontsize=20)
         fig.suptitle("    ", fontsize=20)
         fig.tight_layout()
-        if namefig!=None:
-            fig.savefig(namefig,dpi=120)
-        #plt.show()
+        fig.savefig(savepath+namefig,dpi=120)
+        plt.show()
 
         plt.close(fig)
 
@@ -1040,7 +1117,7 @@ class McL:
         index : if index are a vector, data are extract according to thei index
         if it is None, all data are extract
         """
-        if index==None:
+        if (index==None) & (self.EXT_CORR=='yes'):
             id_obj    =     self.id_obj
             ra        =     self.ra
             dec       =     self.dec
@@ -1052,12 +1129,11 @@ class McL:
             J0mag     =     self.J0mag
             H0mag     =     self.H0mag
             K0mag     =     self.K0mag
-            rmag      =     self.rmag
             E_jk      =     self.E_jk
 
-            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, J0mag, H0mag, K0mag, rmag, E_jk
+            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, J0mag, H0mag, K0mag, E_jk
 
-        else:
+        elif (index==None) & (self.EXT_CORR=='yes'):
             id_obj    =     self.id_obj[index]
             ra        =     self.ra[index]
             dec       =     self.dec[index]
@@ -1066,12 +1142,43 @@ class McL:
             Jmag      =     self.Jmag[index]
             Hmag      =     self.Hmag[index]
             Kmag      =     self.Kmag[index]
-            rmag      =     self.rmag[index]
             J0mag     =     self.J0mag[index]
             H0mag     =     self.H0mag[index]
             K0mag     =     self.K0mag[index]
             E_jk      =     self.E_jk[index]
-            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, J0mag, H0mag, K0mag, rmag, E_jk
+            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, J0mag, H0mag, K0mag, E_jk
+
+
+        if (index==None) & (self.EXT_CORR!='yes'):
+            id_obj    =     self.id_obj
+            ra        =     self.ra
+            dec       =     self.dec
+            l         =     self.l
+            b         =     self.b
+            Jmag      =     self.Jmag
+            Hmag      =     self.Hmag
+            Kmag      =     self.Kmag
+            J0mag     =     -99*np.ones((len(id_obj)))
+            H0mag     =     -99*np.ones((len(id_obj)))
+            K0mag     =     -99*np.ones((len(id_obj)))
+            E_jk      =     self.E_jk
+
+            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, J0mag, H0mag, K0mag, E_jk
+
+        elif (index==None) & (self.EXT_CORR!='yes'):
+            id_obj    =     self.id_obj[index]
+            ra        =     self.ra[index]
+            dec       =     self.dec[index]
+            l         =     self.l[index]
+            b         =     self.b[index]
+            Jmag      =     self.Jmag[index]
+            Hmag      =     self.Hmag[index]
+            Kmag      =     self.Kmag[index]
+            J0mag     =     -99*np.ones((len(self.id_obj[index])))
+            H0mag     =     -99*np.ones((len(self.id_obj[index])))
+            K0mag     =     -99*np.ones((len(self.id_obj[index])))
+            E_jk      =     self.E_jk[index]
+            return id_obj, ra, dec, l, b, Jmag, Hmag, Kmag, J0mag, H0mag, K0mag, E_jk
 
 
 
@@ -1173,7 +1280,15 @@ class McL:
 
 
 
-    def single_malt_star(self, ID_all, ra_all, dec_all, mag_all,  ID, ra, dec, mag, rr, keyw=['a0','a1','a2','a3']):
+    def single_malt_star(self, ID_all, ra_all, dec_all, mag_all,  ID, ra, dec, mag, rr=None, keyw=['a0','a1','a2','a3']):
+        plt.hist(mag_all[mag_all<90])
+        plt.show()
+        plt.close()
+
+        print("Searching in a subsample of "+str(len(ID))+" stars over the full sample of "+str(len(ID_all))+"...")
+        if rr==None:
+            rr = float(self.RADIUS_DEBL)
+        rr = rr/3600.
         pts_all = np.array([ra_all, dec_all]).T
         pts = np.array([ra, dec]).T
         max_distance = rr
@@ -1190,12 +1305,16 @@ class McL:
                 for m in range(n_blend):
                     if (ID_all[idx[n]][m]!=ID[n]) & (mag_all[idx[n]][m]<=mag[n]):
                         bl[n] = 3
-                    elif (ID_all[idx[n]][m]!=ID[n]) & ((mag_all[idx[n]][m]>mag[n]) & (mag_all[idx[n]][m]<(mag[n]+3))):
+                        #print('3', mag_all[idx[n]][m],'<',mag[n])
+                    elif (ID_all[idx[n]][m]!=ID[n]) & ((mag_all[idx[n]][m]>mag[n]) & (mag_all[idx[n]][m]<(mag[n]+2.5))):
                         bl[n] = 2
-                    elif (ID_all[idx[n]][m]!=ID[n]) & (mag_all[idx[n]][m]>=(mag[n]+3)):
+                        #print('2', mag_all[idx[n]][m],'...',mag[n]+2.5)
+                    elif (ID_all[idx[n]][m]!=ID[n]) & (mag_all[idx[n]][m]>=(mag[n]+2.5)):
                         bl[n] = 1
-            elif n_blend==1:
+                        #print('1', mag_all[idx[n]][m],'>',mag[n])
+            elif (n_blend==1) & (mag[n]<17):
                 bl[n] = 0
+                print(mag[n])
 
         blend_type = []
         for n in range(len(bl)):
@@ -1216,7 +1335,10 @@ class McL:
 
 
 
-    def get_sky(self, ra_all, dec_all, rr = 1.4, n_fiber_sky=30, show=True):
+    def get_sky(self, ra_all, dec_all, rr = None, n_fiber_sky=10, show=True):
+        if rr==None:
+            rr = float(self.SKYSIZE)
+        rr = rr/3600.
         sky = []
         k=-1
 
@@ -1233,13 +1355,13 @@ class McL:
 
             pts_all = np.array([ra_all, dec_all]).T
             pts = np.array([ra_random, dec_random]).T
-            max_distance = (rr/3600)*1.01
+            max_distance = (rr)*1.01
 
             Tree = KDTree(pts_all)
             idx = Tree.query_ball_point(pts, r=max_distance)
             if idx == []:
                 sky.append(pts)
-            if k%100 == 0:
+            if k%200 == 0:
                 print('it is very crowded...')
             if k == 1000:
                 print("infinite loop in finding sky. I found "+str(len(sky))+" for now..." )
@@ -1254,24 +1376,194 @@ class McL:
         print()
         print("Saved "+str(len(self.sky))+" sky positions")
         print()
-        
+
         idd_sky = ['sky_'+str(n) for n in range(len(sky))]
         flag_sky = ['T']*len(sky)
         priority_sky = [1]*len(sky)
         mag_sky = [-99]*len(sky)
 
         return idd_sky, self.sky[:,0], self.sky[:,1], flag_sky, priority_sky, mag_sky
+    
+    
+    
+    def plot_hist_sky(self, ra_sky, dec_sky, gridx, gridy):
+        fig, ax = plt.subplots(figsize=(5,5), dpi=500)
+        #plt.pcolormesh(ra_sky, dec_sky, grid)
+        plt.hist2d(ra_sky, dec_sky, bins =[gridx, gridy], vmin=0, vmax=self.N_SKY_XCELL)
+        plt.plot(ra_sky, dec_sky, 'k.')
+        plt.colorbar()
+        plt.xlim(self.raCENTER-self.RADIUS_CUT*2, self.raCENTER+self.RADIUS_CUT*2)
+        plt.ylim(self.decCENTER-self.RADIUS_CUT*2, self.decCENTER+self.RADIUS_CUT*2)
+        ax.set_aspect("equal")
+        plt.show()
+        plt.close()
 
-    print()
+    
+    def skygrid(self, sky_points, k):
+        ra_sky, dec_sky = np.array(sky_points)[:,0], np.array(sky_points)[:,1]
+        c = (self.raCENTER,self.decCENTER)
+        rr = self.RADIUS_CUT
+        r = rr#np.sqrt(2)*rr/2
+        nbox = self.N_CELL 
+        nbox += 1
+        
+        
+        gridx = np.linspace(c[0]-r*1.2,c[0]+r*1.2, nbox)
+        gridy = np.linspace(c[1]-r*1.2,c[1]+r*1.2, nbox)
+        
+        grid, _, _ = np.histogram2d(ra_sky, dec_sky, bins=[gridx, gridy])
+        if (k%200 == 0) & (k!=0):
+            #print(grid)
+            McL.plot_hist_sky(self, ra_sky, dec_sky, gridx, gridy)
+        #if len(ra_sky)>5:    
+            #McL.plot_hist_sky(self, ra_sky, dec_sky, grid)
+
+        grid_red = grid[1:-1,1:-1]
+        conds = (np.min(grid_red)>=self.N_SKY_XCELL)
+        
+        if conds == True:
+            McL.plot_hist_sky(self, ra_sky, dec_sky, gridx, gridy)
+            return 1, grid
+        elif conds == False:
+            return 0, grid
+        
+
+
+
+    def get_sky_grid(self, ra_all, dec_all, rr = None, n_fiber_sky=None, show=False, allsky=True):
+        if rr == None:
+            rr = self.SKYSIZE
+        rr = rr/3600.
+        
+        n_fiber_sky = self.N_SKY_XCELL*self.N_CELL**2
+        sky = []
+        k=-1
+        
+        cond = 0
+        while cond != 1:
+            k += 1
+
+            rho = np.sqrt(np.random.uniform(0, self.RADIUS_CUT/4))
+            phi = np.random.uniform(0, 2*np.pi)
+
+            ra_random = rho * np.cos(phi)+self.raCENTER
+            dec_random = rho * np.sin(phi)+self.decCENTER
+
+
+            pts_all = np.array([ra_all, dec_all]).T
+            pts = np.array([ra_random, dec_random]).T
+            max_distance = rr*1.01
+
+            Tree = KDTree(pts_all)
+            idx = Tree.query_ball_point(pts, r=max_distance)
+            if idx == []:
+                sky.append(pts)
+            if k%200 == 0:
+                print('it is very crowded...')
+            if k == 2000:
+                print("infinite loop in finding sky. I found "+str(len(sky))+" for now..." )
+                print("try to reduce the 'empty sky' radius (now is "+str(int(3600*rr))+" arcsec)")
+                break
+            
+            
+            #if len(np.array(sky)[:,0])>3:
+            cond, grid = McL.skygrid(self, np.array(sky), k)
+
+
+
+        self.sky = np.array(sky)
+
+        if show == True:
+            self.sky = McL.show_skypoint(self, ra_all, dec_all, rr)
+
+        print()
+        print("Saved "+str(len(self.sky))+" sky positions")
+        print()        
+
+        rra_sky, ddec_sky = McL.equisky(self, self.sky[:,0], self.sky[:,1], n_sky=None , show=False)
+
+        idd_sky = ['sky_'+str(n) for n in range(len(rra_sky))]
+        flag_sky = ['T']*len(rra_sky)
+        priority_sky = [1]*len(rra_sky)
+        mag_sky = [-99]*len(rra_sky)
+
+        if allsky==True:
+            idd_sky_all = ['sky_'+str(n) for n in range(len(self.sky[:,0]))]
+            flag_sky_all = ['T']*len(self.sky[:,0])
+            priority_sky_all = [1]*len(self.sky[:,0])
+            mag_sky_all = [-99]*len(self.sky[:,0])
+
+        print()
+        print("Printed "+str(self.N_SKY)+" sky positions")
+        print()        
+
+        if allsky==True:
+            return idd_sky, rra_sky, ddec_sky, flag_sky, priority_sky, mag_sky, idd_sky_all, self.sky[:,0], self.sky[:,1], flag_sky_all, priority_sky_all, mag_sky_all
+        else:
+            return idd_sky, rra_sky, ddec_sky, flag_sky, priority_sky, mag_sky
+
+
+
+    def equisky(self, ra_sky, dec_sky, n_sky=None , show=True):
+        if n_sky == None:
+            n_sky=self.N_SKY
+        k = n_sky
+        points = np.array([ra_sky, dec_sky]).T
+        pts2D = points
+
+        kmeans = KMeans(n_clusters=k, random_state=0).fit(pts2D)
+        labels = kmeans.predict(pts2D)
+        cntr = kmeans.cluster_centers_
+
+
+
+
+        # indices of nearest points to centres
+        approx = []
+    
+        for j, c in enumerate(cntr):
+            lab = np.where(labels == j)[0]
+            pts = pts2D[lab]
+            d = distance_matrix(c[None, ...], pts)
+            idx1 = np.argmin(d, axis=1) + 1
+            idx2 = np.searchsorted(np.cumsum(labels == j), idx1)[0]
+            approx.append(idx2)
+        
+        c = (self.raCENTER,self.decCENTER)
+        rr = self.RADIUS_CUT
+        r = rr#np.sqrt(2)*rr/2
+        nbox = self.N_CELL 
+        nbox += 1
+
+        gridx = np.linspace(c[0]-r*1.2,c[0]+r*1.2, nbox)
+        gridy = np.linspace(c[1]-r*1.2,c[1]+r*1.2, nbox)
+
+
+        fig, ax = plt.subplots(figsize=(5, 5), dpi=250)
+        ax.hist2d(pts2D[:, 0], pts2D[:, 1], bins =[gridx, gridy], vmin=0, vmax=self.N_SKY_XCELL)
+        ax.plot(pts2D[:, 0], pts2D[:, 1], 'k.')
+        ax.plot(cntr[:, 0], cntr[:, 1], 'x')
+        ax.plot(pts2D[approx, 0], pts2D[approx, 1], 'ro')
+        ax.set_aspect("equal")
+        #plt.colorbar(ax=a)
+        fig.legend(["points", "centres", "selected"], loc=1)
+        ax.set_xlim(self.raCENTER-self.RADIUS_CUT*2, self.raCENTER+self.RADIUS_CUT*2)
+        ax.set_ylim(self.decCENTER-self.RADIUS_CUT*2, self.decCENTER+self.RADIUS_CUT*2)
+        plt.show()
+        plt.close()
+        
+        return pts2D[approx, 0], pts2D[approx, 1]
+
+
+
+
 
     def show_skypoint(self, ra_all, dec_all, rr):
-
-
         ind = ['y']*len(self.sky)
         ind = np.asarray(ind)
         for n in range(len(self.sky)):
             fig, ax = plt.subplots(figsize=(7,7), dpi=100)
-            dd = (rr/3600)*7
+            dd = (rr)*7
             ralim = [self.sky[n][0]-dd,self.sky[n][0]+dd]
             declim = [self.sky[n][1]-dd,self.sky[n][1]+dd]
 
@@ -1299,8 +1591,18 @@ class McL:
 
 
 
+    def control_doubles(namefile):
+        a,b,c,e,f   =   np.genfromtxt(namefile, usecols=(0,1,2,4,5), unpack=True)
+        d           =   np.genfromtxt(namefile, usecols=(3), dtype='str', unpack=True)
+        j = len(a)
+        _, i = np.unique(a, return_index=True)
+        jj = len(a[i])
+        a,b,c,d,e,f = a[i],b[i],c[i],d[i],e[i],f[i]
 
+        file=open(namefile, "w")
+        file.write("# ID          RA        DEC        flag   priority   mag  \n".format())
+        for val in zip(a,b,c,d,e,f):
+            file.write('  {:10}   {:=9.5f}   {:=9.5f}   {:=2}   {:=1.0f}   {:=7.4f}   \n'.format(val[0],val[1],val[2],val[3],val[4],val[5]))
+        file.close()
 
-
-
-
+        print("deleted "+str(j-jj)+" double elements")

@@ -1,49 +1,53 @@
 #######################################################
 #             Select Stars for MOONS - GC             #
 #                 Cristiano Fanelli                   #
-#                   0.2.0  Version                    #
-#                   24 - 11 - 2021                    #
+#                   0.3.1  Version                    #
+#                   27 - 08 - 2022                    #
 #######################################################
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Comments:
-# For V-0.0.1 the files (both ascii and fits) must be arranged
-# in columns as: *"ID, ra, dec, l, b, J, H, Ks, rmag, E(J-K)"
-# TODO: Merging of more than 1 catalogue at the starting point
+# For V-0.3.0 the files (both ascii and fits) must be arranged
+# in columns as: *"ID, ra, dec, l, b, J, H, Ks, E(J-K)"
 # TODO: automatic recognition of columns file (maybe? Is it useful?)
 # of columns.
-# 25 - 10 - 2021	Cristiano Fanelli
-# You can use more than 1 catalogue (Max 3 for now)
-# TODO: generalize for N catalogue, with N>3
-# 24 - 11 - 2021 	Cristiano Fanelli
+# 23 - 05 - 2022 	Cristiano Fanelli
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 #The full path to the file name, with the extension (.fits, .dat, .txt, ...)
 #if more than one catalogue, adding it as a list path1,path2,...,pathN !!!SAME FILETYPE!!!
-PATH		/Users/cristiano/phd/NICE/catalogues/333_d.fits,/Users/cristiano/phd/NICE/catalogues/334_d.fits
+PATH		/Users/cristiano/phd/NICE/catalogues/333_d.fits
 
 #For spherical cut
-CENTRE_CUT	(0.0,0.0)		  # FLOAT (X0,Y0)
-RADIUS_CUT	0.25		  # FLOAT
+CENTRE_CUT	 (266.32,-29.12)	    # FLOAT (X0,Y0) [deg]
+RADIUS_CUT	 9		            # FLOAT  [arcmin]
 
 #For magnitude cut in J, H or K band
 MAG_BAND_CUT	H		  # STRING
-MAG_VAL_CUT	17		  # FLOAT
+MAG_VAL_CUT	25		  # FLOAT
 
-#For selecting a type of stars into a square
+# min,max color and magnitude ranges
 #it gives values as in *Comments
-Type		RC		  # STRING
-J-K		None		  # [(J-K)0, (J-K)1]
-K		None		  # [K0, K1]
-
+Type		Cool_stars	  # STRING
+J-H		[2.5,4]		  # [(J-H)0, (J-H)1]
+H		[16.5,14.5]	  # [H0, H1]
+N_tell	5			  # Number of telluric 
+COL_tell	0		  # Telluric color < COL_tell
+MAG_tell	15		  # Telluric mag < MAG_tell 
+N_sky		30		  # Number of total sky fibers [Nsky <= N_cell**2 x Nsky_xcell]
+N_cell		4		  # Number of subcells  [N_cell**2]
+Nsky_xcell	2		  # number of sky position x cell
+skysize		0.8		  # radius for empty sky [arcsec]
+deblending_r	1.2		  # radius for searching stellar blend [arcsec]
+EXT_corr	no		  # extinction correction #TODO 
 
 
 #For the parameter file
 
-hasGuideStar          true        # if false the guide probe will not be considered (true or false)
-guideStarRA           -999     	  # RA of the VLT guide star in decimal degrees
-guideStarDEC          -999	  # DEC of the VLT guide star in decimal degrees
+hasGuideStar          false       # if false the guide probe will not be considered (true or false)
+guideStarRA           266.66      # RA of the VLT guide star in decimal degrees
+guideStarDEC          -28.90	  # DEC of the VLT guide star in decimal degrees
 orientationGP         POS         # guide probe orientation (POS or NEG)
 
 date                  06:11:2020  # Observing date, format mm:dd:yy
@@ -54,7 +58,7 @@ observingMode         STARE       # observing strategy: STARE, XSWITCH, STAREand
 noddingSize           30.0        # nodding size from 10 to 30 arcsec
 noddingDirection      90.0        # nodding direction from 0 to 360 degrees
 
-n_fibres_on_sky       0         # number of fibres dedicated to sky (STARE mode only)
+n_fibres_on_sky       0           # number of fibres dedicated to sky (STARE mode only)
 
 bi_policy             2           # 0 no burn-in; 1 burn-in; 2 burn-in and freeze
 bi_iterations         5           # Number of iterations during burn-in
